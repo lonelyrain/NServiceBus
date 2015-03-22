@@ -12,13 +12,14 @@ namespace NServiceBus.Unicast
     using NServiceBus.Transports;
     using NServiceBus.Unicast.Messages;
     using NServiceBus.Unicast.Routing;
+    using IServiceProvider = NServiceBus.IServiceProvider;
 
     interface IContextualBus
     {
     }
 
     [SkipWeaving]
-    partial class ContextualBus : IBus, IContextualBus
+    partial class ContextualBus : IBus, IContextualBus, IServiceProvider
     {
         readonly IMessageMapper messageMapper;
         readonly Func<BehaviorContext> contextGetter;
@@ -541,6 +542,11 @@ namespace NServiceBus.Unicast
 
                 return current;
             }
+        }
+
+        public T GetService<T>()
+        {
+            return builder.Build<T>();
         }
     }
 }
