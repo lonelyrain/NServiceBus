@@ -45,8 +45,7 @@ namespace NServiceBus.Unicast
             ReadOnlySettings settings,
             TransportDefinition transportDefinition,
             ISendMessages messageSender,
-            StaticMessageRouter messageRouter,
-            CallbackMessageLookup callbackMessageLookup)
+            StaticMessageRouter messageRouter)
         {
             this.executor = executor;
             this.criticalError = criticalError;
@@ -65,8 +64,7 @@ namespace NServiceBus.Unicast
                 settings,
                 transportDefinition,
                 messageSender,
-                messageRouter,
-                callbackMessageLookup);
+                messageRouter);
         }
 
         /// <summary>

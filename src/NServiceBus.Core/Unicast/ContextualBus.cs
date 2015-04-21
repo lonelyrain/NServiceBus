@@ -31,13 +31,12 @@ namespace NServiceBus.Unicast
         readonly TransportDefinition transportDefinition;
         readonly ISendMessages messageSender;
         readonly StaticMessageRouter messageRouter;
-        readonly CallbackMessageLookup callbackMessageLookup;
         readonly PipelineBase<OutgoingContext> outgoingPipeline;
         readonly bool sendOnlyMode;
         readonly string sendLocalAddress;
 
         public ContextualBus(Func<BehaviorContext> contextGetter, IMessageMapper messageMapper, IBuilder builder, Configure configure, IManageSubscriptions subscriptionManager,
-            MessageMetadataRegistry messageMetadataRegistry, ReadOnlySettings settings, TransportDefinition transportDefinition, ISendMessages messageSender, StaticMessageRouter messageRouter, CallbackMessageLookup callbackMessageLookup)
+            MessageMetadataRegistry messageMetadataRegistry, ReadOnlySettings settings, TransportDefinition transportDefinition, ISendMessages messageSender, StaticMessageRouter messageRouter)
         {
             this.messageMapper = messageMapper;
             this.contextGetter = contextGetter;
@@ -49,7 +48,6 @@ namespace NServiceBus.Unicast
             this.transportDefinition = transportDefinition;
             this.messageSender = messageSender;
             this.messageRouter = messageRouter;
-            this.callbackMessageLookup = callbackMessageLookup;
             outgoingPipeline = new PipelineBase<OutgoingContext>(builder, settings.Get<PipelineModifications>());
             sendOnlyMode = settings.Get<bool>("Endpoint.SendOnly");
             //if we're a worker, send to the distributor data bus
@@ -313,24 +311,24 @@ namespace NServiceBus.Unicast
             messageSender.Send(new OutgoingMessage(MessageBeingProcessed.Id, MessageBeingProcessed.Headers, MessageBeingProcessed.Body), new TransportSendOptions(destination));
         }
 
-        public ICallback Send<T>(Action<T> messageConstructor, NServiceBus.SendOptions options)
+        public void Send<T>(Action<T> messageConstructor, NServiceBus.SendOptions options)
         {
-            return Send(messageMapper.CreateInstance(messageConstructor), options);
+            Send(messageMapper.CreateInstance(messageConstructor), options);
         }
 
-        public ICallback Send(object message, NServiceBus.SendOptions options)
+        public void Send(object message, NServiceBus.SendOptions options)
         {
-            return SendMessage(options, messageFactory.Create(message));
+            SendMessage(options, messageFactory.Create(message));
         }
 
-        public ICallback SendLocal<T>(Action<T> messageConstructor, SendLocalOptions options)
+        public void SendLocal<T>(Action<T> messageConstructor, SendLocalOptions options)
         {
-            return SendLocal(messageMapper.CreateInstance(messageConstructor), options);
+            SendLocal(messageMapper.CreateInstance(messageConstructor), options);
         }
 
-        public ICallback SendLocal(object message, SendLocalOptions options)
+        public void SendLocal(object message, SendLocalOptions options)
         {
-            return SendMessage(options, messageFactory.Create(message));
+            SendMessage(options, messageFactory.Create(message));
         }
 
         string GetDestinationForSend(Type messageType)
@@ -345,7 +343,7 @@ namespace NServiceBus.Unicast
             return destinations.SingleOrDefault();
         }
 
-        ICallback SendMessage(SendLocalOptions options, LogicalMessage message)
+        void SendMessage(SendLocalOptions options, LogicalMessage message)
         {
             var destination = sendLocalAddress;
 
@@ -363,10 +361,10 @@ namespace NServiceBus.Unicast
 
             var sendOptions = new SendMessageOptions(destination, deliverAt, delayDeliveryFor, options.Context);
 
-            return SendMessage(options.MessageId, options.CorrelationId, MessageIntentEnum.Send, options.Headers, sendOptions, message);
+            SendMessage(options.MessageId, options.CorrelationId, MessageIntentEnum.Send, options.Headers, sendOptions, message);
         }
 
-        ICallback SendMessage(NServiceBus.SendOptions options, LogicalMessage message)
+        void SendMessage(NServiceBus.SendOptions options, LogicalMessage message)
         {
             var destination = options.Destination;
 
@@ -389,10 +387,10 @@ namespace NServiceBus.Unicast
 
             var sendOptions = new SendMessageOptions(destination, deliverAt, delayDeliveryFor, options.Context);
 
-            return SendMessage(options.MessageId, options.CorrelationId, options.Intent, options.Headers, sendOptions, message);
+            SendMessage(options.MessageId, options.CorrelationId, options.Intent, options.Headers, sendOptions, message);
         }
 
-        ICallback SendMessage(string messageId, string correlationId, MessageIntentEnum intent, Dictionary<string, string> messageHeaders, SendMessageOptions sendOptions, LogicalMessage message)
+        void SendMessage(string messageId, string correlationId, MessageIntentEnum intent, Dictionary<string, string> messageHeaders, SendMessageOptions sendOptions, LogicalMessage message)
         {
             var headers = new Dictionary<string, string>(messageHeaders);
 
@@ -427,8 +425,6 @@ namespace NServiceBus.Unicast
                 intent);
 
             outgoingPipeline.Invoke(outgoingContext);
-
-            return SetupCallback(messageId);
         }
 
         private void ApplyReplyToAddress(Dictionary<string, string> headers)
@@ -448,14 +444,6 @@ namespace NServiceBus.Unicast
             {
                 headers[Headers.ReplyToAddress] = replyToAddress;
             }
-        }
-
-        ICallback SetupCallback(string transportMessageId)
-        {
-            var result = new Callback(transportMessageId, sendOnlyMode);
-            result.Registered += (sender, args) => callbackMessageLookup.RegisterResult(args.MessageId, args.TaskCompletionSource);
-
-            return result;
         }
 
         /// <summary>

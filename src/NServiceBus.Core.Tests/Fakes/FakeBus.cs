@@ -68,12 +68,12 @@
             throw new NotImplementedException();
         }
 
-        public ICallback Send(object message, SendOptions options)
+        public void Send(object message, SendOptions options)
         {
-            return null;
+            
         }
 
-        public ICallback Send<T>(Action<T> messageConstructor, SendOptions options)
+        public void Send<T>(Action<T> messageConstructor, SendOptions options)
         {
             throw new NotImplementedException();
         }
@@ -90,6 +90,7 @@
             throw new NotImplementedException();
         }
 
+        [Obsolete("", true)]
         public ICallback Send(string destination, string correlationId, object message)
         {
             throw new NotImplementedException();
@@ -101,6 +102,7 @@
             throw new NotImplementedException();
         }
 
+        [Obsolete("", true)]
         public ICallback Send<T>(string destination, string correlationId, Action<T> messageConstructor)
         {
             throw new NotImplementedException();
@@ -113,7 +115,7 @@
             throw new NotImplementedException();
         }
 
-        public ICallback SendLocal(object message, SendLocalOptions options)
+        public void SendLocal(object message, SendLocalOptions options)
         {
             if (options.Delay.HasValue)
             {
@@ -121,10 +123,9 @@
                 deferDelay = options.Delay.Value;
                 DeferedMessage = message;
             }
-            return null;
         }
 
-        public ICallback SendLocal<T>(Action<T> messageConstructor, SendLocalOptions options)
+        public void SendLocal<T>(Action<T> messageConstructor, SendLocalOptions options)
         {
             throw new NotImplementedException();
         }
